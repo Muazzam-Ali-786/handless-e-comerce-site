@@ -5,6 +5,16 @@ import Image from "next/image";
 import { formatCurrency } from "@/lib/utils";
 import { useCartStore } from "@/store/cart-store";
 
+const buildContext = (product: any, variant: any) => ({
+  productId: product.id,
+  productHandle: product.handle,
+  productTitle: product.title,
+  variantTitle: variant.title,
+  price: variant.price,
+  featuredImage: product.featuredImage || { url: "", altText: "", width: 0, height: 0 },
+  selectedOptions: variant.selectedOptions || [],
+});
+
 export function FbtWidget({
   mainProduct,
   mainVariant,
@@ -28,12 +38,12 @@ export function FbtWidget({
 
   const handleAddSelected = async () => {
     if (selectMain && mainVariant?.id) {
-      addItem(mainVariant.id, 1);
+      addItem(mainVariant.id, 1, buildContext(mainProduct, mainVariant));
     }
     if (selectRelated && relatedVariant?.id) {
       // Small timeout to prevent immediate parallel store updates from clashing
       setTimeout(() => {
-        addItem(relatedVariant.id, 1);
+        addItem(relatedVariant.id, 1, buildContext(relatedProduct, relatedVariant));
       }, 500);
     }
   };

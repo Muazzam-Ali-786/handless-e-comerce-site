@@ -1,11 +1,21 @@
 import Link from "next/link";
 import { getProducts, getCollections } from "@/lib/shopify";
 import { ProductCard } from "@/components/product/product-card";
+import { Reveal, StaggerGroup, StaggerItem, ParallaxImage } from "@/components/home/home-motion";
 import Image from "next/image";
 
 export default async function HomePage() {
   const products = await getProducts();
   const collections = await getCollections();
+
+  // Real "On Sale": only products with a variant whose compareAtPrice beats its price.
+  const saleProducts = products.filter((product) =>
+    product.variants?.edges?.some(
+      ({ node }) =>
+        node.compareAtPrice &&
+        parseFloat(node.compareAtPrice.amount) > parseFloat(node.price.amount)
+    )
+  );
 
   return (
     <div className="flex flex-col min-h-screen bg-[#faf9f6] text-black">
@@ -22,7 +32,7 @@ export default async function HomePage() {
             className="object-cover object-center"
           />
         </div>
-        
+
         {/* Sleek Overlay Gradients */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20" />
@@ -61,49 +71,53 @@ export default async function HomePage() {
       {/* Circular Premium Categories */}
       <section className="bg-[#f5f5f4] py-16 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 w-full">
-          <div className="flex justify-center gap-6 md:gap-16 overflow-x-auto no-scrollbar py-2">
+          <StaggerGroup className="flex justify-center gap-6 md:gap-16 overflow-x-auto no-scrollbar py-2">
             {[
-              { 
-                name: "Outerwear", 
-                href: "/collections/outerwear", 
-                img: "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?q=80&w=400&auto=format&fit=crop" 
+              {
+                name: "Outerwear",
+                href: "/collections/outerwear",
+                img: "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?q=80&w=400&auto=format&fit=crop"
               },
-              { 
-                name: "Knitwear", 
-                href: "/collections/knitwear", 
-                img: "https://images.unsplash.com/photo-1614975058789-41316d0e2e9c?q=80&w=400&auto=format&fit=crop" 
+              {
+                name: "Knitwear",
+                href: "/collections/knitwear",
+                img: "https://images.unsplash.com/photo-1614975058789-41316d0e2e9c?q=80&w=400&auto=format&fit=crop"
               },
-              { 
-                name: "Accessories", 
-                href: "/collections/accessories", 
-                img: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?q=80&w=400&auto=format&fit=crop" 
+              {
+                name: "Accessories",
+                href: "/collections/accessories",
+                img: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?q=80&w=400&auto=format&fit=crop"
               },
             ].map((cat) => (
-              <Link
+              <StaggerItem
                 key={cat.name}
-                href={cat.href}
-                className="flex flex-col items-center gap-4 group flex-shrink-0 cursor-pointer"
+                className="flex-shrink-0"
               >
-                <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden relative ring-1 ring-black/5 ring-offset-4 group-hover:ring-black transition-all duration-500">
-                  <Image
-                    src={cat.img}
-                    alt={cat.name}
-                    fill
-                    className="object-cover group-hover:scale-110 transition-transform duration-700"
-                  />
-                  <div className="absolute inset-0 bg-black/5 group-hover:bg-black/20 transition-colors duration-300" />
-                </div>
-                <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-[#44403c] group-hover:text-black transition-colors">
-                  {cat.name}
-                </span>
-              </Link>
+                <Link
+                  href={cat.href}
+                  className="flex flex-col items-center gap-4 group cursor-pointer"
+                >
+                  <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden relative ring-1 ring-black/5 ring-offset-4 group-hover:ring-black transition-all duration-500">
+                    <Image
+                      src={cat.img}
+                      alt={cat.name}
+                      fill
+                      className="object-cover group-hover:scale-110 transition-transform duration-700"
+                    />
+                    <div className="absolute inset-0 bg-black/5 group-hover:bg-black/20 transition-colors duration-300" />
+                  </div>
+                  <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-[#44403c] group-hover:text-black transition-colors">
+                    {cat.name}
+                  </span>
+                </Link>
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerGroup>
         </div>
       </section>
 
       {/* Brand Philosophy Segment (Wow-factor Editorial) */}
-      <section className="max-w-7xl mx-auto px-6 py-24 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center w-full">
+      <Reveal className="max-w-7xl mx-auto px-6 py-24 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center w-full">
         <div className="lg:col-span-5 space-y-6">
           <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#78716c]">
             Maison Philosophy
@@ -124,32 +138,26 @@ export default async function HomePage() {
             </Link>
           </div>
         </div>
-        
-        {/* Intersecting Dual-Image Editorial Layout */}
+
+        {/* Intersecting Dual-Image Editorial Layout (with parallax) */}
         <div className="lg:col-span-7 grid grid-cols-12 gap-4 relative mt-10 lg:mt-0">
-          <div className="col-span-8 aspect-[4/5] relative overflow-hidden bg-gray-100 shadow-md">
-            <Image
-              src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=800&auto=format&fit=crop"
-              alt="Maison studio tailoring"
-              fill
-              className="object-cover"
-            />
-          </div>
-          <div className="col-span-5 aspect-[3/4] absolute bottom-[-40px] right-[-10px] md:right-4 overflow-hidden border-8 border-[#faf9f6] shadow-xl z-10 hidden sm:block">
-            <Image
-              src="https://images.unsplash.com/photo-1544022613-e87ca75a784a?q=80&w=600&auto=format&fit=crop"
-              alt="Maison texture detail"
-              fill
-              className="object-cover"
-            />
-          </div>
+          <ParallaxImage
+            src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=800&auto=format&fit=crop"
+            alt="Maison studio tailoring"
+            className="relative col-span-8 aspect-[4/5] bg-gray-100 shadow-md"
+          />
+          <ParallaxImage
+            src="https://images.unsplash.com/photo-1544022613-e87ca75a784a?q=80&w=600&auto=format&fit=crop"
+            alt="Maison texture detail"
+            className="col-span-5 aspect-[3/4] absolute bottom-[-40px] right-[-10px] md:right-4 border-8 border-[#faf9f6] shadow-xl z-10 hidden sm:block"
+          />
         </div>
-      </section>
+      </Reveal>
 
       {/* New Arrivals Horizontal Showcase */}
       <section className="w-full py-16 border-t border-gray-200 overflow-hidden">
         <div className="max-w-[1600px] mx-auto px-6 w-full">
-          <div className="text-center mb-10">
+          <Reveal className="text-center mb-10">
             <h2 className="text-2xl font-semibold uppercase tracking-[0.15em] text-black">
               New In
             </h2>
@@ -159,106 +167,108 @@ export default async function HomePage() {
             >
               View All
             </Link>
-          </div>
+          </Reveal>
 
           {products.length === 0 ? (
-            <p className="text-center text-gray-400 py-20">Loading products...</p>
+            <p className="text-center text-gray-400 py-20 font-light uppercase tracking-widest text-sm">
+              No products available
+            </p>
           ) : (
-            <div className="flex gap-4 md:gap-6 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-8">
+            <StaggerGroup className="flex gap-4 md:gap-6 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-8">
               {products.slice(0, 10).map((product) => (
                 <div key={product.id} className="min-w-[280px] w-[80vw] md:w-[320px] lg:w-[18vw] flex-shrink-0 snap-start">
                   <ProductCard product={product} />
                 </div>
               ))}
-            </div>
+            </StaggerGroup>
           )}
         </div>
       </section>
 
-      {/* On Sale Horizontal Showcase */}
-      <section className="w-full py-16 border-t border-gray-200 overflow-hidden bg-white">
-        <div className="max-w-[1600px] mx-auto px-6 w-full">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl font-semibold uppercase tracking-[0.15em] text-black">
-              On Sale
-            </h2>
-            <Link
-              href="/collections/sale"
-              className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:text-black transition-colors mt-2 block"
-            >
-              View All
-            </Link>
-          </div>
+      {/* On Sale Horizontal Showcase — only rendered when products are actually on sale */}
+      {saleProducts.length > 0 && (
+        <section className="w-full py-16 border-t border-gray-200 overflow-hidden bg-white">
+          <div className="max-w-[1600px] mx-auto px-6 w-full">
+            <Reveal className="text-center mb-10">
+              <h2 className="text-2xl font-semibold uppercase tracking-[0.15em] text-black">
+                On Sale
+              </h2>
+              <Link
+                href="/collections/sale"
+                className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:text-black transition-colors mt-2 block"
+              >
+                View All
+              </Link>
+            </Reveal>
 
-          {products.length === 0 ? (
-            <p className="text-center text-gray-400 py-20">Loading products...</p>
-          ) : (
-            <div className="flex gap-4 md:gap-6 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-8">
-              {/* Note: ideally we would filter products by discount here, but for demo we slice differently */}
-              {[...products].reverse().slice(0, 10).map((product) => (
+            <StaggerGroup className="flex gap-4 md:gap-6 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-8">
+              {saleProducts.slice(0, 10).map((product) => (
                 <div key={`sale-${product.id}`} className="min-w-[280px] w-[80vw] md:w-[320px] lg:w-[18vw] flex-shrink-0 snap-start">
                   <ProductCard product={product} />
                 </div>
               ))}
-            </div>
-          )}
-        </div>
-      </section>
+            </StaggerGroup>
+          </div>
+        </section>
+      )}
 
       {/* Collections Premium Showcase Split-Banners */}
-      <section className="w-full bg-[#1c1917] text-white py-24 mt-16">
-        <div className="max-w-7xl mx-auto px-6 w-full space-y-16">
-          <div className="text-center max-w-xl mx-auto space-y-4">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.4em] text-[#a8a29e]">
-              Shop by category
-            </span>
-            <h2 className="text-3xl md:text-4xl font-light uppercase tracking-wider">
-              The Winter <span className="font-serif italic font-normal text-[#d6d3d1]">Chapters</span>
-            </h2>
-            <div className="w-12 h-[1px] bg-white/30 mx-auto mt-4" />
-          </div>
+      {collections.length > 0 && (
+        <section className="w-full bg-[#1c1917] text-white py-24 mt-16">
+          <div className="max-w-7xl mx-auto px-6 w-full space-y-16">
+            <Reveal className="text-center max-w-xl mx-auto space-y-4">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.4em] text-[#a8a29e]">
+                Shop by category
+              </span>
+              <h2 className="text-3xl md:text-4xl font-light uppercase tracking-wider">
+                The Winter <span className="font-serif italic font-normal text-[#d6d3d1]">Chapters</span>
+              </h2>
+              <div className="w-12 h-[1px] bg-white/30 mx-auto mt-4" />
+            </Reveal>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-4">
-            {collections.slice(0, 3).map((collection) => (
-              <Link
-                key={collection.handle}
-                href={`/collections/${collection.handle}`}
-                className="group relative aspect-[3/4] overflow-hidden bg-zinc-900 border border-white/5 cursor-pointer"
-              >
-                {/* Background Image (with fallback) */}
-                <div className="absolute inset-0 scale-100 group-hover:scale-105 transition-transform duration-700 ease-out opacity-75">
-                  <Image
-                    src={collection.image?.url || "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?q=80&w=800&auto=format&fit=crop"}
-                    alt={collection.title}
-                    fill
-                    className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
-                  />
-                </div>
-                {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/10 group-hover:via-black/30 transition-all duration-300" />
-                
-                {/* Content */}
-                <div className="absolute inset-0 flex flex-col justify-end p-8 space-y-3 z-20">
-                  <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#d6d3d1]">
-                    Explore Chapter
-                  </span>
-                  <h3 className="text-2xl font-light uppercase tracking-wider text-white">
-                    {collection.title}
-                  </h3>
-                  <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    {collection.description}
-                  </p>
-                  <div className="pt-2">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-white border-b border-white/40 group-hover:border-white pb-1 transition-all">
-                      Browse Garments →
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            ))}
+            <StaggerGroup className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-4">
+              {collections.slice(0, 3).map((collection) => (
+                <StaggerItem key={collection.handle}>
+                  <Link
+                    href={`/collections/${collection.handle}`}
+                    className="group relative aspect-[3/4] overflow-hidden bg-zinc-900 border border-white/5 cursor-pointer block"
+                  >
+                    {/* Background Image (with fallback) */}
+                    <div className="absolute inset-0 scale-100 group-hover:scale-105 transition-transform duration-700 ease-out opacity-75">
+                      <Image
+                        src={collection.image?.url || "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?q=80&w=800&auto=format&fit=crop"}
+                        alt={collection.title}
+                        fill
+                        className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
+                      />
+                    </div>
+                    {/* Gradient overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/10 group-hover:via-black/30 transition-all duration-300" />
+
+                    {/* Content */}
+                    <div className="absolute inset-0 flex flex-col justify-end p-8 space-y-3 z-20">
+                      <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#d6d3d1]">
+                        Explore Chapter
+                      </span>
+                      <h3 className="text-2xl font-light uppercase tracking-wider text-white">
+                        {collection.title}
+                      </h3>
+                      <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                        {collection.description}
+                      </p>
+                      <div className="pt-2">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-white border-b border-white/40 group-hover:border-white pb-1 transition-all">
+                          Browse Garments →
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                </StaggerItem>
+              ))}
+            </StaggerGroup>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   );
 }

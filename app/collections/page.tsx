@@ -23,6 +23,11 @@ export default async function CollectionsPage() {
 
       {/* Collections Grid */}
       <div className="max-w-7xl mx-auto px-6 space-y-16">
+        {collections.length === 0 && (
+          <p className="text-center text-gray-400 py-24 font-light uppercase tracking-widest text-sm">
+            No collections available
+          </p>
+        )}
         {collections.map((collection, index) => {
           const isEven = index % 2 === 0;
           return (

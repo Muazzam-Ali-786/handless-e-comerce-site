@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Search, User, Menu, X } from "lucide-react";
 import { CartIcon } from "./cart-icon";
 import { Marquee } from "../ui/marquee";
+import { CountdownBanner } from "../ui/countdown-banner";
 import { SearchDrawer } from "./search-drawer";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -23,6 +24,7 @@ export function Navbar() {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 flex flex-col">
+        <CountdownBanner />
         <Marquee text="✦ FREE SHIPPING WORLDWIDE ON ORDERS OVER $500 ✦ NEW SUMMER COLLECTION 2026 ✦" />
         <div className="bg-white/90 backdrop-blur-md border-b border-gray-100 transition-colors duration-300 hover:bg-white">
           <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">

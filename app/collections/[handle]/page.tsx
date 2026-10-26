@@ -1,6 +1,6 @@
 import { getCollectionProducts, getProducts, getCollections } from "@/lib/shopify";
 import { ProductCard } from "@/components/product/product-card";
-import { notFound } from "next/navigation";
+import Link from "next/link";
 
 export default async function CollectionPage({
   params,
@@ -8,20 +8,69 @@ export default async function CollectionPage({
   params: Promise<{ handle: string }>;
 }) {
   const { handle } = await params;
-  
+
   const products = handle === "all" ? await getProducts() : await getCollectionProducts(handle);
 
-  if (!products || products.length === 0) {
-    if (handle !== "all") {
-      const collections = await getCollections();
-      const exists = collections.some(c => c.handle === handle);
-      if (!exists) return notFound();
-    }
-  }
-
-  const title = handle === "all" 
-    ? "All Products" 
+  const title = handle === "all"
+    ? "All Products"
     : handle.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+
+  // A specific collection that is missing from the store OR has no products
+  // renders a designed empty state inside the normal layout — never a hard 404.
+  if (handle !== "all" && (!products || products.length === 0)) {
+    const collections = await getCollections();
+    const others = collections.filter((c) => c.handle !== handle);
+
+    return (
+      <div className="bg-[#faf9f6] text-black min-h-screen pb-20 -mt-20 pt-20">
+        <div className="max-w-[1600px] mx-auto px-6 py-24 flex flex-col items-center text-center">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.4em] text-[#78716c] mb-6">
+            Maison Collections
+          </span>
+          <h1 className="text-4xl md:text-5xl font-light tracking-widest uppercase">{title}</h1>
+          <h2 className="text-lg font-light uppercase tracking-wider text-gray-500 mt-6">
+            This collection isn&apos;t available yet
+          </h2>
+          <p className="text-sm text-gray-600 leading-relaxed max-w-md mt-4">
+            The pieces you&apos;re looking for haven&apos;t arrived in this collection yet. New collections are added every season — explore what&apos;s in store today.
+          </p>
+          <div className="pt-8 flex flex-col sm:flex-row gap-4">
+            <Link
+              href="/collections/all"
+              className="bg-black text-white text-center uppercase tracking-widest text-[11px] font-bold px-8 py-4 border border-black hover:bg-[#27272a] transition-all duration-300"
+            >
+              Shop All Products
+            </Link>
+            <Link
+              href="/"
+              className="bg-transparent text-black text-center uppercase tracking-widest text-[11px] font-bold px-8 py-4 border border-black hover:bg-black hover:text-white transition-all duration-300"
+            >
+              Return Home
+            </Link>
+          </div>
+
+          {others.length > 0 && (
+            <div className="mt-16">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#78716c] mb-4">
+                Browse available collections
+              </p>
+              <div className="flex flex-wrap justify-center gap-x-6 gap-y-3">
+                {others.map((c) => (
+                  <Link
+                    key={c.handle}
+                    href={`/collections/${c.handle}`}
+                    className="text-sm font-medium text-gray-600 hover:text-black underline underline-offset-4 transition-colors"
+                  >
+                    {c.title}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[#faf9f6] text-black min-h-screen pb-20 -mt-20 pt-20">

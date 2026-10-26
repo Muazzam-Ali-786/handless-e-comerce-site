@@ -4,10 +4,27 @@ import { Product, ProductVariant } from "@/types/shopify";
 import { cn } from "@/lib/utils";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-export function VariantSelector({ options, variants }: { options: Product["options"]; variants: ProductVariant[] }) {
+export function VariantSelector({
+  options,
+  variants,
+  selected,
+  onSelectOption,
+}: {
+  options: Product["options"];
+  variants: ProductVariant[];
+  // Controlled mode (e.g. inside the quick-view modal): when provided, the
+  // selector reads/writes these instead of the URL search params.
+  selected?: Record<string, string>;
+  onSelectOption?: (name: string, value: string) => void;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  const controlled = typeof onSelectOption === "function";
+
+  const getSelected = (name: string) =>
+    controlled ? selected?.[name.toLowerCase()] ?? null : searchParams.get(name.toLowerCase());
 
   const hasNoOptionsOrJustOneOption =
     !options.length || (options.length === 1 && options[0].values.length === 1);
@@ -24,16 +41,9 @@ export function VariantSelector({ options, variants }: { options: Product["optio
           <div className="flex flex-wrap gap-2">
             {option.values.map((value) => {
               const optionNameLowerCase = option.name.toLowerCase();
-              
-              // Base option params on current params so we can update them
-              const optionParams = new URLSearchParams(searchParams.toString());
-              
-              // Update the option params
-              optionParams.set(optionNameLowerCase, value);
-              const optionUrl = `${pathname}?${optionParams.toString()}`;
 
               // Is this option currently selected?
-              const isActive = searchParams.get(optionNameLowerCase) === value;
+              const isActive = getSelected(option.name) === value;
 
               // Check if combination is available
               const isAvailableForSale = variants.some((variant) => {
@@ -42,7 +52,7 @@ export function VariantSelector({ options, variants }: { options: Product["optio
                     return variantOption.value === value;
                   }
                   // Check other currently selected options
-                  const selectedValue = searchParams.get(variantOption.name.toLowerCase());
+                  const selectedValue = getSelected(variantOption.name);
                   // If not selected yet, assume it could be valid
                   if (!selectedValue) return true;
                   return variantOption.value === selectedValue;
@@ -50,13 +60,21 @@ export function VariantSelector({ options, variants }: { options: Product["optio
                 return isMatch && variant.availableForSale;
               });
 
+              const handleSelect = () => {
+                if (controlled) {
+                  onSelectOption!(optionNameLowerCase, value);
+                  return;
+                }
+                const optionParams = new URLSearchParams(searchParams.toString());
+                optionParams.set(optionNameLowerCase, value);
+                router.replace(`${pathname}?${optionParams.toString()}`, { scroll: false });
+              };
+
               // Dynamic styling based on state
               return (
                 <button
                   key={value}
-                  onClick={() => {
-                    router.replace(optionUrl, { scroll: false });
-                  }}
+                  onClick={handleSelect}
                   disabled={!isAvailableForSale}
                   className={cn(
                     "min-w-[3rem] px-4 py-2 border rounded-md text-sm transition-all",

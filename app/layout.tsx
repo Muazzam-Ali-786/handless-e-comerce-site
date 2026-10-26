@@ -5,6 +5,7 @@ import { clsx } from "clsx";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { CartDrawer } from "@/components/cart/cart-drawer";
+import { CartFeedback } from "@/components/cart/cart-feedback";
 import { PageTransition } from "@/components/layout/page-transition";
 import { WhatsappButton } from "@/components/ui/whatsapp-button";
 
@@ -29,11 +30,12 @@ export default function RootLayout({
     <html lang="en" className={clsx(inter.variable, "antialiased")}>
       <body className="min-h-screen flex flex-col bg-white text-black selection:bg-black selection:text-white">
         <Navbar />
-        <main className="flex-grow flex flex-col pt-[112px]">
+        <main className="flex-grow flex flex-col pt-[140px]">
           <PageTransition>{children}</PageTransition>
         </main>
         <Footer />
         <CartDrawer />
+        <CartFeedback />
         <WhatsappButton />
       </body>
     </html>

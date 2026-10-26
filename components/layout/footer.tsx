@@ -38,10 +38,10 @@ export function Footer() {
             <div>
               <h4 className="font-semibold text-xs tracking-widest uppercase mb-6">Social</h4>
               <ul className="space-y-4 text-sm text-gray-500 font-light">
-                <li><a href="#" className="hover:text-black transition-colors">Instagram</a></li>
-                <li><a href="#" className="hover:text-black transition-colors">Pinterest</a></li>
-                <li><a href="#" className="hover:text-black transition-colors">TikTok</a></li>
-                <li><a href="#" className="hover:text-black transition-colors">Journal</a></li>
+                <li><a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="hover:text-black transition-colors">Instagram</a></li>
+                <li><a href="https://pinterest.com" target="_blank" rel="noopener noreferrer" className="hover:text-black transition-colors">Pinterest</a></li>
+                <li><a href="https://tiktok.com" target="_blank" rel="noopener noreferrer" className="hover:text-black transition-colors">TikTok</a></li>
+                <li><Link href="/journal" className="hover:text-black transition-colors">Journal</Link></li>
               </ul>
             </div>
           </div>

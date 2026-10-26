@@ -1,8 +1,33 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { Cart } from "@/types/shopify";
+import { Cart, Image, Money } from "@/types/shopify";
 import { addToCart, createCart, getCart, removeFromCart, updateCart } from "@/app/actions/shopify";
-import { MOCK_PRODUCTS } from "@/lib/shopify";
+import { useCartUIStore, FlyOrigin } from "@/store/cart-ui-store";
+
+// Display context passed by callers so a local-mode cart can build a line
+// without relying on any mock catalog. `origin` (the clicked element's rect)
+// and the featured image drive the fly-to-cart feedback.
+export interface AddItemContext {
+  productId: string;
+  productHandle: string;
+  productTitle: string;
+  variantTitle: string;
+  price: Money;
+  featuredImage: Image;
+  selectedOptions?: { name: string; value: string }[];
+  origin?: FlyOrigin | null;
+}
+
+// A cart line that Shopify refused to stock comes back at quantity 0, often
+// with a MERCHANDISE_OUT_OF_STOCK warning. Returns a user-facing message, or null.
+const outOfStockMessage = (
+  result: { warnings: { code: string; message: string }[]; userErrors: { message: string }[] }
+): string | null => {
+  const oos = result.warnings?.find((w) => w.code === "MERCHANDISE_OUT_OF_STOCK");
+  if (oos) return oos.message;
+  if (result.userErrors && result.userErrors.length > 0) return result.userErrors[0].message;
+  return null;
+};
 
 interface CartState {
   cart: Cart | null;
@@ -13,7 +38,7 @@ interface CartState {
   localItems: any[];
   setIsOpen: (isOpen: boolean) => void;
   initializeCart: () => Promise<void>;
-  addItem: (variantId: string, quantity: number) => Promise<void>;
+  addItem: (variantId: string, quantity: number, context?: AddItemContext) => Promise<void>;
   removeItem: (lineId: string) => Promise<void>;
   updateItemQuantity: (lineId: string, variantId: string, quantity: number) => Promise<void>;
 }
@@ -49,13 +74,15 @@ const createLocalMockCart = (items: any[]): Cart => {
     }
   }));
 
+  const currencyCode = items[0]?.price?.currencyCode || "USD";
+
   return {
     id: "local-cart",
     checkoutUrl: "/checkout",
     cost: {
-      subtotalAmount: { amount: subtotal.toFixed(2), currencyCode: "USD" },
-      totalAmount: { amount: subtotal.toFixed(2), currencyCode: "USD" },
-      totalTaxAmount: { amount: "0.00", currencyCode: "USD" }
+      subtotalAmount: { amount: subtotal.toFixed(2), currencyCode },
+      totalAmount: { amount: subtotal.toFixed(2), currencyCode },
+      totalTaxAmount: { amount: "0.00", currencyCode }
     },
     lines: {
       edges: lines
@@ -90,7 +117,7 @@ export const useCartStore = create<CartState>()(
           }
           
           // Try to create Shopify cart
-          const newCart = await createCart();
+          const { cart: newCart } = await createCart();
           set({ cart: newCart, cartId: newCart.id, isLocalMode: false, isLoading: false });
         } catch (error) {
           console.warn("Failed to initialize Shopify cart, falling back to Local Cart:", error);
@@ -105,7 +132,7 @@ export const useCartStore = create<CartState>()(
         }
       },
 
-      addItem: async (variantId, quantity) => {
+      addItem: async (variantId, quantity, context) => {
         const { cartId, isLocalMode, localItems } = get();
         set({ isLoading: true });
 
@@ -115,42 +142,34 @@ export const useCartStore = create<CartState>()(
 
           if (existingItemIndex > -1) {
             items[existingItemIndex].quantity += quantity;
+          } else if (context) {
+            // Build the line from the real product data the caller supplied.
+            items.push({
+              lineId: `local-line-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              variantId,
+              variantTitle: context.variantTitle,
+              quantity,
+              price: context.price,
+              productId: context.productId,
+              productHandle: context.productHandle,
+              productTitle: context.productTitle,
+              featuredImage: context.featuredImage,
+              selectedOptions: context.selectedOptions || []
+            });
           } else {
-            // Look up in premium mock products
-            const product = MOCK_PRODUCTS.find((p) =>
-              p.variants.edges.some((edge) => edge.node.id === variantId)
-            );
-            
-            if (product) {
-              const variant = product.variants.edges.find((edge) => edge.node.id === variantId)?.node;
-              if (variant) {
-                items.push({
-                  lineId: `local-line-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                  variantId,
-                  variantTitle: variant.title,
-                  quantity,
-                  price: variant.price,
-                  productId: product.id,
-                  productHandle: product.handle,
-                  productTitle: product.title,
-                  featuredImage: product.featuredImage || { url: "", altText: "", width: 0, height: 0 },
-                  selectedOptions: variant.selectedOptions
-                });
-              }
-            } else {
-              items.push({
-                lineId: `local-line-${Date.now()}`,
-                variantId,
-                variantTitle: "Default Title",
-                quantity,
-                price: { amount: "180.00", currencyCode: "USD" },
-                productId: "fallback-id",
-                productHandle: "fallback",
-                productTitle: "Premium Item",
-                featuredImage: { url: "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?q=80&w=800", altText: "Premium Item", width: 800, height: 1000 },
-                selectedOptions: []
-              });
-            }
+            // No context available — add a minimal line keyed by the variant id.
+            items.push({
+              lineId: `local-line-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              variantId,
+              variantTitle: "",
+              quantity,
+              price: { amount: "0.00", currencyCode: "USD" },
+              productId: variantId,
+              productHandle: "",
+              productTitle: "Item",
+              featuredImage: { url: "", altText: "", width: 0, height: 0 },
+              selectedOptions: []
+            });
           }
 
           const cart = createLocalMockCart(items);
@@ -162,16 +181,38 @@ export const useCartStore = create<CartState>()(
             isLoading: false,
             isOpen: true
           });
+          if (context) {
+            useCartUIStore.getState().triggerAddFeedback(
+              context.productTitle,
+              context.featuredImage?.url,
+              context.origin
+            );
+          }
           return;
         }
 
         try {
-          const cart = await addToCart(cartId, [{ merchandiseId: variantId, quantity }]);
-          set({ cart, isLoading: false, isOpen: true });
+          const result = await addToCart(cartId, [{ merchandiseId: variantId, quantity }]);
+          const oos = outOfStockMessage(result);
+          if (oos) {
+            // Shopify accepted the request but could not stock the line.
+            // Keep the cart closed and surface a clear message instead.
+            set({ cart: result.cart, isLoading: false });
+            useCartUIStore.getState().triggerNotice(oos);
+            return;
+          }
+          set({ cart: result.cart, isLoading: false, isOpen: true });
+          if (context) {
+            useCartUIStore.getState().triggerAddFeedback(
+              context.productTitle,
+              context.featuredImage?.url,
+              context.origin
+            );
+          }
         } catch (error) {
           console.warn("Failed to add to Shopify cart, falling back to local:", error);
           set({ isLocalMode: true, cartId: "local-cart" });
-          await get().addItem(variantId, quantity);
+          await get().addItem(variantId, quantity, context);
         }
       },
 
@@ -191,7 +232,7 @@ export const useCartStore = create<CartState>()(
         }
 
         try {
-          const cart = await removeFromCart(cartId, [lineId]);
+          const { cart } = await removeFromCart(cartId, [lineId]);
           set({ cart, isLoading: false });
         } catch (error) {
           console.warn("Failed to remove from Shopify cart, falling back to local:", error);
@@ -242,13 +283,17 @@ export const useCartStore = create<CartState>()(
         }
 
         try {
-          let cart;
+          let result;
           if (quantity === 0) {
-            cart = await removeFromCart(cartId, [lineId]);
+            result = await removeFromCart(cartId, [lineId]);
           } else {
-            cart = await updateCart(cartId, [{ id: lineId, merchandiseId: variantId, quantity }]);
+            result = await updateCart(cartId, [{ id: lineId, merchandiseId: variantId, quantity }]);
           }
-          set({ cart, isLoading: false });
+          const oos = outOfStockMessage(result);
+          set({ cart: result.cart, isLoading: false });
+          if (oos) {
+            useCartUIStore.getState().triggerNotice(oos);
+          }
         } catch (error) {
           console.warn("Failed to update cart quantity, falling back to local:", error);
           set({ isLocalMode: true, cartId: "local-cart" });

@@ -115,3 +115,21 @@ export type ShopifyFetchParams = {
   cache?: RequestCache;
   tags?: string[];
 };
+
+export type CartWarning = {
+  code: string;
+  message: string;
+  target: string;
+};
+
+export type CartUserError = {
+  code: string | null;
+  field: string[] | null;
+  message: string;
+};
+
+export type CartMutationResult = {
+  cart: Cart;
+  warnings: CartWarning[];
+  userErrors: CartUserError[];
+};

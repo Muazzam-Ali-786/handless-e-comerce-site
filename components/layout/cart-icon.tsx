@@ -16,6 +16,7 @@ export function CartIcon() {
 
   return (
     <button
+      data-cart-icon
       onClick={() => setIsOpen(true)}
       className="relative flex items-center justify-center p-2 rounded-full hover:bg-accent transition-colors"
       aria-label="Open cart"

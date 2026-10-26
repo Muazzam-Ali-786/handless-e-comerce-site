@@ -75,9 +75,10 @@ export default async function ProductPage({
           </div>
 
           <div className="space-y-4 mb-12">
-            <AddToCartButton 
-              variant={displayVariant} 
-              availableForSale={displayVariant?.availableForSale || false} 
+            <AddToCartButton
+              variant={displayVariant}
+              availableForSale={displayVariant?.availableForSale || false}
+              product={product}
             />
             <WishlistButton productId={product.id} />
           </div>

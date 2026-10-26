@@ -14,7 +14,9 @@ export function CartDrawer() {
     initializeCart();
   }, [initializeCart]);
 
-  const items = cart?.lines?.edges?.map((e) => e.node) || [];
+  // Filter out any phantom zero-quantity lines (e.g. an out-of-stock add that
+  // Shopify refused to stock) so they never silently show in the bag.
+  const items = (cart?.lines?.edges?.map((e) => e.node) || []).filter((item) => item.quantity > 0);
   const totalQuantity = items.reduce((total, item) => total + item.quantity, 0);
 
   return (

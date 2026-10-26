@@ -1,6 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { motion, HTMLMotionProps } from "framer-motion";
+import { motion, HTMLMotionProps, useReducedMotion } from "framer-motion";
 
 export interface ButtonProps extends HTMLMotionProps<"button"> {
   variant?: "default" | "outline" | "ghost" | "link";
@@ -9,11 +9,12 @@ export interface ButtonProps extends HTMLMotionProps<"button"> {
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "default", size = "default", ...props }, ref) => {
+    const reduce = useReducedMotion();
     return (
       <motion.button
         ref={ref}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
+        whileHover={reduce ? undefined : { scale: 1.02 }}
+        whileTap={reduce ? undefined : { scale: 0.97 }}
         className={cn(
           "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
           {
